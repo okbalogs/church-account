@@ -7,65 +7,96 @@ export const metadata: Metadata = {
   description: "Sunday service account records",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="min-h-screen flex flex-col">
-        <header className="bg-blue-900 text-white shadow-lg">
-          <div className="max-w-7xl mx-auto px-4 py-4">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mb-3 sm:mb-0">
-              <Link href="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
-                <span className="text-3xl">&#9997;</span>
-                <span className="text-2xl font-bold tracking-tight">Church Account Manager</span>
+      <body className="min-h-screen bg-slate-50">
+
+        {/* ── Desktop sidebar ── */}
+        <aside className="hidden lg:flex flex-col fixed left-0 top-0 h-full w-56 bg-white border-r border-slate-200 z-20">
+          <div className="px-4 py-5 border-b border-slate-100">
+            <Link href="/" className="flex items-center gap-3 group">
+              <div className="w-9 h-9 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-xl flex items-center justify-center text-white font-bold text-base shadow-sm">
+                ✝
+              </div>
+              <div className="leading-tight">
+                <div className="font-bold text-slate-900 text-[15px]">Church Account</div>
+                <div className="text-xs text-slate-400 font-medium">Manager</div>
+              </div>
+            </Link>
+          </div>
+
+          <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-5">
+            <div>
+              <Link href="/" className="nav-link">
+                <span className="text-xl">🏠</span> Dashboard
               </Link>
             </div>
 
-            {/* Navigation */}
-            <nav className="flex flex-wrap gap-2 mt-3 sm:mt-2">
-              <Link href="/" className="bg-blue-700 hover:bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg text-base transition-colors">
-                Home
-              </Link>
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 px-3 mb-1.5">Income</p>
+              <div className="space-y-0.5">
+                <Link href="/entry" className="nav-link text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 font-semibold">
+                  <span className="text-xl">✏️</span> New Income
+                </Link>
+                <Link href="/history" className="nav-link">
+                  <span className="text-xl">📋</span> Records
+                </Link>
+                <a href="/api/export" className="nav-link">
+                  <span className="text-xl">📥</span> Export Excel
+                </a>
+              </div>
+            </div>
 
-              {/* Income section */}
-              <span className="flex items-center text-blue-300 text-base font-semibold px-2">|</span>
-              <span className="flex items-center text-blue-200 text-sm font-bold uppercase tracking-wide px-1">Income:</span>
-              <Link href="/entry" className="bg-green-600 hover:bg-green-500 text-white font-semibold px-4 py-2 rounded-lg text-base transition-colors">
-                + New Income
-              </Link>
-              <Link href="/history" className="bg-blue-700 hover:bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg text-base transition-colors">
-                Income Records
-              </Link>
-              <a href="/api/export" className="bg-green-700 hover:bg-green-600 text-white font-semibold px-4 py-2 rounded-lg text-base transition-colors">
-                Export Income
-              </a>
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 px-3 mb-1.5">Expenditure</p>
+              <div className="space-y-0.5">
+                <Link href="/expenditure" className="nav-link text-rose-700 hover:bg-rose-50 hover:text-rose-800 font-semibold">
+                  <span className="text-xl">🧾</span> New Expenditure
+                </Link>
+                <Link href="/expenditure/history" className="nav-link">
+                  <span className="text-xl">📊</span> Records
+                </Link>
+                <a href="/api/export/expenditure" className="nav-link">
+                  <span className="text-xl">📥</span> Export Excel
+                </a>
+              </div>
+            </div>
+          </nav>
 
-              {/* Expenditure section */}
-              <span className="flex items-center text-blue-300 text-base font-semibold px-2">|</span>
-              <span className="flex items-center text-blue-200 text-sm font-bold uppercase tracking-wide px-1">Expenditure:</span>
-              <Link href="/expenditure" className="bg-red-600 hover:bg-red-500 text-white font-semibold px-4 py-2 rounded-lg text-base transition-colors">
-                + New Expenditure
-              </Link>
-              <Link href="/expenditure/history" className="bg-red-800 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded-lg text-base transition-colors">
-                Expenditure Records
-              </Link>
-              <a href="/api/export/expenditure" className="bg-orange-700 hover:bg-orange-600 text-white font-semibold px-4 py-2 rounded-lg text-base transition-colors">
-                Export Expenditure
-              </a>
-            </nav>
+          <div className="px-4 py-4 border-t border-slate-100">
+            <p className="text-xs text-slate-400 text-center">Records stored securely</p>
           </div>
+        </aside>
+
+        {/* ── Mobile top header ── */}
+        <header className="lg:hidden sticky top-0 z-20 bg-white border-b border-slate-200 shadow-sm">
+          <div className="flex items-center gap-3 px-4 py-3">
+            <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-lg flex items-center justify-center text-white text-sm font-bold">
+              ✝
+            </div>
+            <span className="font-bold text-slate-900">Church Account Manager</span>
+          </div>
+          <nav className="flex gap-1.5 px-3 pb-2.5 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+            <Link href="/" className="flex-shrink-0 text-sm font-semibold px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg">Home</Link>
+            <span className="flex-shrink-0 text-slate-300 self-center">|</span>
+            <Link href="/entry" className="flex-shrink-0 text-sm font-semibold px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg">+ Income</Link>
+            <Link href="/history" className="flex-shrink-0 text-sm font-semibold px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg">Income Records</Link>
+            <a href="/api/export" className="flex-shrink-0 text-sm font-semibold px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg">Export Income</a>
+            <span className="flex-shrink-0 text-slate-300 self-center">|</span>
+            <Link href="/expenditure" className="flex-shrink-0 text-sm font-semibold px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg">+ Expenditure</Link>
+            <Link href="/expenditure/history" className="flex-shrink-0 text-sm font-semibold px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg">Exp. Records</Link>
+            <a href="/api/export/expenditure" className="flex-shrink-0 text-sm font-semibold px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg">Export Exp.</a>
+          </nav>
         </header>
 
-        <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-8">
-          {children}
+        {/* ── Page content ── */}
+        <main className="lg:ml-56 min-h-screen">
+          <div className="max-w-5xl mx-auto px-4 lg:px-8 py-8">
+            {children}
+          </div>
         </main>
 
-        <footer className="bg-gray-200 text-gray-600 text-center py-4 text-base">
-          Church Account Manager &mdash; All records stored securely on this device.
-        </footer>
       </body>
     </html>
   );

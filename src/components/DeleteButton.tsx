@@ -29,23 +29,14 @@ export default function DeleteButton({ entryId, entryDate }: Props) {
 
   if (confirming) {
     return (
-      <div className="flex flex-col gap-2">
-        <p className="text-base font-semibold text-red-700">
-          Delete entry for {entryDate}?
-        </p>
+      <div className="flex flex-col gap-2 p-3 bg-rose-50 border border-rose-200 rounded-xl">
+        <p className="text-sm font-semibold text-rose-800">Delete {entryDate}?</p>
         <div className="flex gap-2">
-          <button
-            onClick={handleDelete}
-            disabled={deleting}
-            className="btn-danger text-base py-2 px-4"
-          >
-            {deleting ? "Deleting..." : "Yes, Delete"}
+          <button onClick={handleDelete} disabled={deleting} className="btn-danger btn btn-sm flex-1">
+            {deleting ? "…" : "Delete"}
           </button>
-          <button
-            onClick={() => setConfirming(false)}
-            className="btn-secondary text-base py-2 px-4"
-          >
-            Cancel
+          <button onClick={() => setConfirming(false)} className="btn-secondary btn btn-sm flex-1">
+            No
           </button>
         </div>
       </div>
@@ -53,10 +44,7 @@ export default function DeleteButton({ entryId, entryDate }: Props) {
   }
 
   return (
-    <button
-      onClick={() => setConfirming(true)}
-      className="btn-danger text-base py-2 px-4"
-    >
+    <button onClick={() => setConfirming(true)} className="btn-danger btn btn-sm">
       Delete
     </button>
   );

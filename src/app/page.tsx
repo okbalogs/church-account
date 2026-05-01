@@ -30,8 +30,8 @@ export default async function HomePage() {
 
   const [recentIncomeRes, recentExpRes, incomeStatsRes, expStatsRes, incomeMonthRes, expMonthRes] =
     await Promise.all([
-      db.execute(`SELECT id, date, service_type, (${INCOME_SUM}) AS grand_total FROM account_entries ORDER BY date DESC, id DESC LIMIT 4`),
-      db.execute(`SELECT id, date, service_type, (${EXP_SUM}) AS grand_total FROM expenditure_entries ORDER BY date DESC, id DESC LIMIT 4`),
+      db.execute(`SELECT id, date, service_type, (${INCOME_SUM}) AS grand_total FROM account_entries ORDER BY date DESC, id DESC LIMIT 5`),
+      db.execute(`SELECT id, date, service_type, (${EXP_SUM}) AS grand_total FROM expenditure_entries ORDER BY date DESC, id DESC LIMIT 5`),
       db.execute(`SELECT COUNT(*) as count, COALESCE(SUM(${INCOME_SUM}), 0) as total FROM account_entries`),
       db.execute(`SELECT COUNT(*) as count, COALESCE(SUM(${EXP_SUM}), 0) as total FROM expenditure_entries`),
       db.execute(`SELECT COALESCE(SUM(${INCOME_SUM}), 0) as total FROM account_entries WHERE strftime('%Y-%m', date) = strftime('%Y-%m', 'now')`),
@@ -50,117 +50,139 @@ export default async function HomePage() {
 
   function fc(n: number) {
     const abs = Math.abs(n);
-    return (n < 0 ? "-" : "") + "₦" + abs.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return (n < 0 ? "-₦" : "₦") + abs.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
   function formatDate(d: string) {
     return new Date(d + "T00:00:00").toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
   }
 
+  const now = new Date();
+  const monthName = now.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+
   return (
     <div className="space-y-8">
-      <div className="card bg-gradient-to-r from-blue-800 to-blue-900 text-white">
-        <h1 className="text-3xl font-bold mb-1">Welcome</h1>
-        <p className="text-xl text-blue-100">Record and manage your church income and expenditure accounts.</p>
-      </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Link href="/entry" className="card flex flex-col items-center text-center py-8 hover:shadow-xl transition-shadow border-2 border-green-200 hover:border-green-400 group">
-          <span className="text-4xl mb-2">✏️</span>
-          <span className="text-xl font-bold text-green-800 group-hover:text-green-600">New Income</span>
-          <span className="text-sm text-gray-500 mt-1">Record collection</span>
-        </Link>
-        <Link href="/history" className="card flex flex-col items-center text-center py-8 hover:shadow-xl transition-shadow border-2 border-blue-200 hover:border-blue-400 group">
-          <span className="text-4xl mb-2">📋</span>
-          <span className="text-xl font-bold text-blue-800 group-hover:text-blue-600">Income Records</span>
-          <span className="text-sm text-gray-500 mt-1">View all income</span>
-        </Link>
-        <Link href="/expenditure" className="card flex flex-col items-center text-center py-8 hover:shadow-xl transition-shadow border-2 border-red-200 hover:border-red-400 group">
-          <span className="text-4xl mb-2">🧾</span>
-          <span className="text-xl font-bold text-red-800 group-hover:text-red-600">New Expenditure</span>
-          <span className="text-sm text-gray-500 mt-1">Record spending</span>
-        </Link>
-        <Link href="/expenditure/history" className="card flex flex-col items-center text-center py-8 hover:shadow-xl transition-shadow border-2 border-orange-200 hover:border-orange-400 group">
-          <span className="text-4xl mb-2">📊</span>
-          <span className="text-xl font-bold text-orange-800 group-hover:text-orange-600">Expenditure Records</span>
-          <span className="text-sm text-gray-500 mt-1">View all spending</span>
-        </Link>
-      </div>
-
+      {/* Page title */}
       <div>
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">Financial Summary</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="card border-l-4 border-l-green-500">
-            <div className="text-sm text-gray-500 font-bold uppercase tracking-wide mb-2">Total Income ({Number(incomeStats.count)} entries)</div>
-            <div className="text-2xl font-bold text-green-700">{fc(Number(incomeStats.total))}</div>
-            <div className="text-base text-gray-500 mt-1">This month: <span className="font-semibold text-green-600">{fc(Number(incomeMonth.total))}</span></div>
+        <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
+        <p className="text-slate-500 mt-0.5">Overview for {monthName}</p>
+      </div>
+
+      {/* Quick actions */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <Link href="/entry" className="group bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 rounded-2xl p-5 flex flex-col items-center text-center transition-all shadow-sm hover:shadow-md">
+          <div className="w-12 h-12 bg-emerald-100 group-hover:bg-emerald-200 rounded-xl flex items-center justify-center text-2xl mb-3 transition-colors">✏️</div>
+          <span className="font-semibold text-slate-800 group-hover:text-emerald-800 text-[15px]">New Income</span>
+          <span className="text-xs text-slate-400 mt-0.5">Record collection</span>
+        </Link>
+        <Link href="/history" className="group bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-300 rounded-2xl p-5 flex flex-col items-center text-center transition-all shadow-sm hover:shadow-md">
+          <div className="w-12 h-12 bg-blue-100 group-hover:bg-blue-200 rounded-xl flex items-center justify-center text-2xl mb-3 transition-colors">📋</div>
+          <span className="font-semibold text-slate-800 group-hover:text-blue-800 text-[15px]">Income Records</span>
+          <span className="text-xs text-slate-400 mt-0.5">View all income</span>
+        </Link>
+        <Link href="/expenditure" className="group bg-white hover:bg-rose-50 border border-slate-200 hover:border-rose-300 rounded-2xl p-5 flex flex-col items-center text-center transition-all shadow-sm hover:shadow-md">
+          <div className="w-12 h-12 bg-rose-100 group-hover:bg-rose-200 rounded-xl flex items-center justify-center text-2xl mb-3 transition-colors">🧾</div>
+          <span className="font-semibold text-slate-800 group-hover:text-rose-800 text-[15px]">New Expenditure</span>
+          <span className="text-xs text-slate-400 mt-0.5">Record spending</span>
+        </Link>
+        <Link href="/expenditure/history" className="group bg-white hover:bg-orange-50 border border-slate-200 hover:border-orange-300 rounded-2xl p-5 flex flex-col items-center text-center transition-all shadow-sm hover:shadow-md">
+          <div className="w-12 h-12 bg-orange-100 group-hover:bg-orange-200 rounded-xl flex items-center justify-center text-2xl mb-3 transition-colors">📊</div>
+          <span className="font-semibold text-slate-800 group-hover:text-orange-800 text-[15px]">Exp. Records</span>
+          <span className="text-xs text-slate-400 mt-0.5">View all spending</span>
+        </Link>
+      </div>
+
+      {/* Financial summary */}
+      <div>
+        <h2 className="text-lg font-bold text-slate-800 mb-3">Financial Summary</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-5 text-white shadow-sm">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center text-lg">💰</div>
+              <span className="text-sm font-semibold text-emerald-100 uppercase tracking-wide">Total Income</span>
+            </div>
+            <div className="text-2xl font-bold mb-1">{fc(Number(incomeStats.total))}</div>
+            <div className="text-sm text-emerald-100">{Number(incomeStats.count)} entries &nbsp;·&nbsp; This month: <span className="font-semibold text-white">{fc(Number(incomeMonth.total))}</span></div>
           </div>
-          <div className="card border-l-4 border-l-red-500">
-            <div className="text-sm text-gray-500 font-bold uppercase tracking-wide mb-2">Total Expenditure ({Number(expStats.count)} entries)</div>
-            <div className="text-2xl font-bold text-red-700">{fc(Number(expStats.total))}</div>
-            <div className="text-base text-gray-500 mt-1">This month: <span className="font-semibold text-red-600">{fc(Number(expMonth.total))}</span></div>
+
+          <div className="bg-gradient-to-br from-rose-500 to-rose-600 rounded-2xl p-5 text-white shadow-sm">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center text-lg">💸</div>
+              <span className="text-sm font-semibold text-rose-100 uppercase tracking-wide">Total Expenditure</span>
+            </div>
+            <div className="text-2xl font-bold mb-1">{fc(Number(expStats.total))}</div>
+            <div className="text-sm text-rose-100">{Number(expStats.count)} entries &nbsp;·&nbsp; This month: <span className="font-semibold text-white">{fc(Number(expMonth.total))}</span></div>
           </div>
-          <div className={`card border-l-4 ${netBalance >= 0 ? "border-l-blue-500" : "border-l-orange-500"}`}>
-            <div className="text-sm text-gray-500 font-bold uppercase tracking-wide mb-2">Net Balance (Income − Expenditure)</div>
-            <div className={`text-2xl font-bold ${netBalance >= 0 ? "text-blue-700" : "text-orange-700"}`}>{fc(netBalance)}</div>
-            <div className="text-base text-gray-500 mt-1">This month: <span className={`font-semibold ${netMonth >= 0 ? "text-blue-600" : "text-orange-600"}`}>{fc(netMonth)}</span></div>
+
+          <div className={`bg-gradient-to-br ${netBalance >= 0 ? "from-indigo-500 to-violet-600" : "from-orange-500 to-orange-600"} rounded-2xl p-5 text-white shadow-sm`}>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center text-lg">⚖️</div>
+              <span className="text-sm font-semibold text-indigo-100 uppercase tracking-wide">Net Balance</span>
+            </div>
+            <div className="text-2xl font-bold mb-1">{fc(netBalance)}</div>
+            <div className="text-sm text-indigo-100">Income − Expenditure &nbsp;·&nbsp; This month: <span className={`font-semibold text-white`}>{fc(netMonth)}</span></div>
           </div>
         </div>
       </div>
 
-      <div className="card">
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">Export to Excel</h2>
-        <p className="text-base text-gray-500 mb-4">Each export is a separate file matching the original spreadsheet format.</p>
-        <div className="flex flex-wrap gap-4">
-          <a href="/api/export" className="btn-success flex items-center gap-2"><span>📥</span> Download Income Excel</a>
-          <a href="/api/export/expenditure" className="bg-orange-700 hover:bg-orange-800 text-white font-bold py-3 px-6 rounded-lg text-lg transition-colors flex items-center gap-2"><span>📥</span> Download Expenditure Excel</a>
-        </div>
-      </div>
-
+      {/* Recent activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-xl font-bold text-gray-800">Recent Income</h2>
-            <Link href="/history" className="text-blue-700 hover:underline text-base font-semibold">View all &rarr;</Link>
+            <h2 className="text-lg font-bold text-slate-800">Recent Income</h2>
+            <Link href="/history" className="text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition-colors">View all →</Link>
           </div>
           {recentIncome.length === 0 ? (
-            <div className="card text-center py-8 text-gray-400 text-lg">No income entries yet</div>
+            <div className="card text-center py-10 text-slate-400">No income entries yet</div>
           ) : (
-            <div className="space-y-2">
-              {recentIncome.map((e) => (
-                <div key={e.id} className="card flex items-center justify-between py-3">
+            <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
+              {recentIncome.map((e, i) => (
+                <div key={e.id} className={`flex items-center justify-between px-5 py-3.5 ${i < recentIncome.length - 1 ? "border-b border-slate-100" : ""}`}>
                   <div>
-                    <div className="font-semibold text-base text-gray-900">{formatDate(e.date)}</div>
-                    <div className="text-sm text-gray-500">{e.service_type}</div>
+                    <div className="font-semibold text-slate-900 text-[15px]">{formatDate(e.date)}</div>
+                    <div className="text-xs text-slate-400 mt-0.5">{e.service_type}</div>
                   </div>
-                  <div className="text-lg font-bold text-green-700">{fc(Number(e.grand_total))}</div>
+                  <div className="text-base font-bold text-emerald-600">{fc(Number(e.grand_total))}</div>
                 </div>
               ))}
             </div>
           )}
         </div>
+
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-xl font-bold text-gray-800">Recent Expenditure</h2>
-            <Link href="/expenditure/history" className="text-red-700 hover:underline text-base font-semibold">View all &rarr;</Link>
+            <h2 className="text-lg font-bold text-slate-800">Recent Expenditure</h2>
+            <Link href="/expenditure/history" className="text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition-colors">View all →</Link>
           </div>
           {recentExp.length === 0 ? (
-            <div className="card text-center py-8 text-gray-400 text-lg">No expenditure entries yet</div>
+            <div className="card text-center py-10 text-slate-400">No expenditure entries yet</div>
           ) : (
-            <div className="space-y-2">
-              {recentExp.map((e) => (
-                <div key={e.id} className="card flex items-center justify-between py-3">
+            <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
+              {recentExp.map((e, i) => (
+                <div key={e.id} className={`flex items-center justify-between px-5 py-3.5 ${i < recentExp.length - 1 ? "border-b border-slate-100" : ""}`}>
                   <div>
-                    <div className="font-semibold text-base text-gray-900">{formatDate(e.date)}</div>
-                    <div className="text-sm text-gray-500">{e.service_type}</div>
+                    <div className="font-semibold text-slate-900 text-[15px]">{formatDate(e.date)}</div>
+                    <div className="text-xs text-slate-400 mt-0.5">{e.service_type}</div>
                   </div>
-                  <div className="text-lg font-bold text-red-700">{fc(Number(e.grand_total))}</div>
+                  <div className="text-base font-bold text-rose-600">{fc(Number(e.grand_total))}</div>
                 </div>
               ))}
             </div>
           )}
         </div>
       </div>
+
+      {/* Export */}
+      <div className="card">
+        <h2 className="text-lg font-bold text-slate-800 mb-1">Export to Excel</h2>
+        <p className="text-sm text-slate-500 mb-4">Each export is a separate file matching the original spreadsheet format.</p>
+        <div className="flex flex-wrap gap-3">
+          <a href="/api/export" className="btn-success">📥 Download Income Excel</a>
+          <a href="/api/export/expenditure" className="btn-expenditure btn">📥 Download Expenditure Excel</a>
+        </div>
+      </div>
+
     </div>
   );
 }

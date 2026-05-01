@@ -1,9 +1,9 @@
 import Link from "next/link";
 import getDb from "@/lib/db";
 import { EXPENDITURE_CATEGORIES } from "@/types";
+import DeleteExpenditureButton from "@/components/DeleteExpenditureButton";
 
 export const dynamic = "force-dynamic";
-import DeleteExpenditureButton from "@/components/DeleteExpenditureButton";
 
 interface EntryWithTotals {
   id: number;
@@ -39,123 +39,91 @@ export default async function ExpenditureHistoryPage() {
   );
   const entries = result.rows as unknown as EntryWithTotals[];
 
-  const overallTotal = entries.reduce((sum, e) => sum + e.grand_total, 0);
+  const overallTotal = entries.reduce((sum, e) => sum + Number(e.grand_total), 0);
 
-  function formatCurrency(n: number) {
-    if (!n) return "-";
+  function fc(n: number) {
+    if (!n) return "—";
     return "₦" + n.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
-  function formatDate(dateStr: string) {
-    const d = new Date(dateStr + "T00:00:00");
-    return d.toLocaleDateString("en-GB", {
-      weekday: "short",
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
+  function formatDate(d: string) {
+    return new Date(d + "T00:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "2-digit", month: "short", year: "numeric" });
   }
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Expenditure Records</h1>
-          <p className="text-lg text-gray-600 mt-1">
-            {entries.length === 0
-              ? "No entries yet."
-              : `${entries.length} record${entries.length !== 1 ? "s" : ""} found`}
+          <h1 className="text-2xl font-bold text-slate-900">Expenditure Records</h1>
+          <p className="text-slate-500 mt-0.5">
+            {entries.length === 0 ? "No entries yet" : `${entries.length} record${entries.length !== 1 ? "s" : ""}`}
           </p>
         </div>
-        <div className="flex gap-3 flex-wrap">
-          <Link href="/expenditure" className="bg-red-700 hover:bg-red-800 text-white font-bold py-3 px-6 rounded-lg text-lg transition-colors">
-            + New Entry
-          </Link>
+        <div className="flex gap-2 flex-wrap">
+          <Link href="/expenditure" className="btn-expenditure btn">+ New Expenditure</Link>
           {entries.length > 0 && (
-            <a href="/api/export/expenditure" className="btn-success">
-              Export to Excel
-            </a>
+            <a href="/api/export/expenditure" className="btn-success btn">📥 Export Excel</a>
           )}
         </div>
       </div>
 
       {entries.length > 0 && (
-        <div className="card bg-red-50 border-red-200">
-          <div className="text-base text-gray-500 font-semibold uppercase tracking-wide mb-1">
-            Overall Total Expenditure
-          </div>
-          <div className="text-3xl font-bold text-red-800">
-            {formatCurrency(overallTotal)}
-          </div>
+        <div className="bg-gradient-to-br from-rose-500 to-rose-600 rounded-2xl p-5 text-white shadow-sm">
+          <div className="text-xs font-bold uppercase tracking-widest text-rose-100 mb-1">Overall Total Expenditure</div>
+          <div className="text-3xl font-bold">{"₦" + overallTotal.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
         </div>
       )}
 
       {entries.length === 0 ? (
         <div className="card text-center py-16">
-          <div className="text-5xl mb-4">📋</div>
-          <p className="text-xl text-gray-500 mb-6">No records yet.</p>
-          <Link href="/expenditure" className="bg-red-700 hover:bg-red-800 text-white font-bold py-3 px-6 rounded-lg text-lg inline-block">
-            Add First Entry
-          </Link>
+          <div className="text-5xl mb-4">📊</div>
+          <p className="text-xl text-slate-400 mb-6">No records yet.</p>
+          <Link href="/expenditure" className="btn-expenditure btn">Add First Entry</Link>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {entries.map((entry) => (
-            <div key={entry.id} className="card hover:shadow-lg transition-shadow">
+            <div key={entry.id} className="bg-white border border-slate-100 rounded-2xl shadow-sm hover:shadow-md transition-shadow p-5">
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                 <div className="flex-1">
-                  <div className="flex flex-wrap items-center gap-3 mb-3">
-                    <span className="text-xl font-bold text-gray-900">
-                      {formatDate(entry.date)}
-                    </span>
-                    <span className="bg-red-100 text-red-800 text-base font-semibold px-3 py-1 rounded-full">
+                  <div className="flex flex-wrap items-center gap-2 mb-3">
+                    <span className="text-lg font-bold text-slate-900">{formatDate(entry.date)}</span>
+                    <span className="bg-rose-50 text-rose-700 text-sm font-semibold px-3 py-0.5 rounded-full border border-rose-200">
                       {entry.service_type}
                     </span>
                   </div>
 
-                  <div className="flex flex-wrap gap-2 mb-4">
+                  <div className="flex flex-wrap gap-1.5 mb-4">
                     {EXPENDITURE_CATEGORIES.map((cat) => {
                       const church = (entry[`${cat.key}_church`] as number) || 0;
                       const project = (entry[`${cat.key}_project`] as number) || 0;
                       if (church === 0 && project === 0) return null;
                       return (
-                        <span
-                          key={cat.key}
-                          className="bg-red-50 text-red-800 text-sm font-medium px-2 py-1 rounded-lg border border-red-100"
-                        >
-                          {cat.label}: {formatCurrency(church + project)}
+                        <span key={cat.key} className="bg-rose-50 text-rose-700 text-xs font-medium px-2.5 py-1 rounded-lg border border-rose-100">
+                          {cat.label}: {fc(church + project)}
                         </span>
                       );
                     })}
                   </div>
 
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="bg-gray-50 rounded-lg p-3 text-center">
-                      <div className="text-sm text-gray-500 font-semibold">Church</div>
-                      <div className="text-lg font-bold text-gray-800">
-                        {formatCurrency(entry.total_church)}
-                      </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="bg-slate-50 rounded-xl p-3 text-center">
+                      <div className="text-xs text-slate-400 font-semibold uppercase tracking-wide mb-0.5">Church</div>
+                      <div className="font-bold text-slate-800">{fc(Number(entry.total_church))}</div>
                     </div>
-                    <div className="bg-gray-50 rounded-lg p-3 text-center">
-                      <div className="text-sm text-gray-500 font-semibold">Project</div>
-                      <div className="text-lg font-bold text-gray-800">
-                        {formatCurrency(entry.total_project)}
-                      </div>
+                    <div className="bg-slate-50 rounded-xl p-3 text-center">
+                      <div className="text-xs text-slate-400 font-semibold uppercase tracking-wide mb-0.5">Project</div>
+                      <div className="font-bold text-slate-800">{fc(Number(entry.total_project))}</div>
                     </div>
-                    <div className="bg-red-700 rounded-lg p-3 text-center">
-                      <div className="text-sm text-red-200 font-semibold">Total</div>
-                      <div className="text-lg font-bold text-white">
-                        {formatCurrency(entry.grand_total)}
-                      </div>
+                    <div className="bg-rose-600 rounded-xl p-3 text-center">
+                      <div className="text-xs text-rose-200 font-semibold uppercase tracking-wide mb-0.5">Total</div>
+                      <div className="font-bold text-white">{fc(Number(entry.grand_total))}</div>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex flex-row sm:flex-col gap-2 sm:min-w-[120px]">
-                  <Link
-                    href={`/expenditure/${entry.id}/edit`}
-                    className="btn-secondary text-base py-2 px-4 text-center"
-                  >
+                <div className="flex sm:flex-col gap-2 sm:min-w-[100px]">
+                  <Link href={`/expenditure/${entry.id}/edit`} className="btn-secondary btn btn-sm text-center flex-1 sm:flex-none">
                     Edit
                   </Link>
                   <DeleteExpenditureButton entryId={entry.id} entryDate={entry.date} />
