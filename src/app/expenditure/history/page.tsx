@@ -1,6 +1,8 @@
 import Link from "next/link";
 import getDb from "@/lib/db";
 import { EXPENDITURE_CATEGORIES } from "@/types";
+
+export const dynamic = "force-dynamic";
 import DeleteExpenditureButton from "@/components/DeleteExpenditureButton";
 
 interface EntryWithTotals {

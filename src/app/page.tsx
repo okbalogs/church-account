@@ -1,6 +1,8 @@
 import Link from "next/link";
 import getDb from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 const INCOME_SUM = `
   offering_church + tithe_church + sunday_school_church + covenant_offering_church +
   thanksgiving_church + holy_communion_church + special_thanksgiving_church +

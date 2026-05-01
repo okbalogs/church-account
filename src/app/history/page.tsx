@@ -1,6 +1,8 @@
 import Link from "next/link";
 import getDb from "@/lib/db";
 import { ACCOUNT_CATEGORIES } from "@/types";
+
+export const dynamic = "force-dynamic";
 import DeleteButton from "@/components/DeleteButton";
 
 interface EntryWithTotals {
