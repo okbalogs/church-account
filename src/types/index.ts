@@ -5,10 +5,15 @@ export type ServiceType =
   | "SPECIAL SERVICE"
   | "OTHER";
 
-export interface CategoryAmounts {
-  church: number;
-  project: number;
-}
+export const SERVICE_TYPES: ServiceType[] = [
+  "SUNDAY SERVICE",
+  "ECC DAY",
+  "GLORY CONVENTION",
+  "SPECIAL SERVICE",
+  "OTHER",
+];
+
+// ── INCOME ──────────────────────────────────────────────────────────────────
 
 export interface AccountEntry {
   id?: number;
@@ -70,10 +75,64 @@ export const ACCOUNT_CATEGORIES = [
 
 export type CategoryKey = (typeof ACCOUNT_CATEGORIES)[number]["key"];
 
-export const SERVICE_TYPES: ServiceType[] = [
-  "SUNDAY SERVICE",
-  "ECC DAY",
-  "GLORY CONVENTION",
-  "SPECIAL SERVICE",
-  "OTHER",
-];
+// ── EXPENDITURE ──────────────────────────────────────────────────────────────
+
+export interface ExpenditureEntry {
+  id?: number;
+  date: string;
+  service_type: ServiceType;
+  transportation_church: number;
+  transportation_project: number;
+  premise_church: number;
+  premise_project: number;
+  percent25_church: number;
+  percent25_project: number;
+  gift_church: number;
+  gift_project: number;
+  battery_church: number;
+  battery_project: number;
+  fuel_church: number;
+  fuel_project: number;
+  electricity_church: number;
+  electricity_project: number;
+  lcc_dcc_church: number;
+  lcc_dcc_project: number;
+  entertainment_church: number;
+  entertainment_project: number;
+  pastors_appreciation_church: number;
+  pastors_appreciation_project: number;
+  stationeries_church: number;
+  stationeries_project: number;
+  accessories_church: number;
+  accessories_project: number;
+  phcn_church: number;
+  phcn_project: number;
+  assessment_church: number;
+  assessment_project: number;
+  created_at?: string;
+}
+
+export interface ExpenditureEntryTotals extends ExpenditureEntry {
+  total_church: number;
+  total_project: number;
+  grand_total: number;
+}
+
+export const EXPENDITURE_CATEGORIES = [
+  { key: "transportation", label: "Transportation" },
+  { key: "premise", label: "Premise" },
+  { key: "percent25", label: "25%" },
+  { key: "gift", label: "Gift" },
+  { key: "battery", label: "Battery" },
+  { key: "fuel", label: "Fuel" },
+  { key: "electricity", label: "Electricity" },
+  { key: "lcc_dcc", label: "LCC/DCC" },
+  { key: "entertainment", label: "Entertainment" },
+  { key: "pastors_appreciation", label: "Pastor's Appreciation" },
+  { key: "stationeries", label: "Stationeries" },
+  { key: "accessories", label: "Accessories" },
+  { key: "phcn", label: "PHCN" },
+  { key: "assessment", label: "Assessment" },
+] as const;
+
+export type ExpenditureCategoryKey = (typeof EXPENDITURE_CATEGORIES)[number]["key"];
