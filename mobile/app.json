@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "Church Account",
+    "slug": "church-account-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "churchaccount",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.church.account"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#4f46e5"
+      },
+      "package": "com.church.account"
+    },
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

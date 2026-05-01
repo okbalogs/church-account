@@ -1,0 +1,18 @@
+export const C = {
+  primary:     '#4f46e5',
+  primaryLight:'#eef2ff',
+  income:      '#059669',
+  incomeLight: '#ecfdf5',
+  incomeDark:  '#047857',
+  exp:         '#e11d48',
+  expLight:    '#fff1f2',
+  expDark:     '#be123c',
+  bg:          '#f8fafc',
+  card:        '#ffffff',
+  text:        '#0f172a',
+  sub:         '#64748b',
+  muted:       '#94a3b8',
+  border:      '#e2e8f0',
+  row1:        '#f8fafc',
+  row2:        '#ffffff',
+};
