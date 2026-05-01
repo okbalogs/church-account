@@ -13,30 +13,29 @@ interface EntryWithTotals {
   [key: string]: unknown;
 }
 
-export default function HistoryPage() {
-  const db = getDb();
-  const entries = db
-    .prepare(
-      `SELECT *,
-        (offering_church + tithe_church + sunday_school_church + covenant_offering_church +
-         thanksgiving_church + holy_communion_church + special_thanksgiving_church +
-         fellowship_church + dedication_church + sow_a_seed_church + pastors_appreciation_church +
-         harvest_church + project_support_church + lcc_church) AS total_church,
-        (offering_project + tithe_project + sunday_school_project + covenant_offering_project +
-         thanksgiving_project + holy_communion_project + special_thanksgiving_project +
-         fellowship_project + dedication_project + sow_a_seed_project + pastors_appreciation_project +
-         harvest_project + project_support_project + lcc_project) AS total_project,
-        (offering_church + tithe_church + sunday_school_church + covenant_offering_church +
-         thanksgiving_church + holy_communion_church + special_thanksgiving_church +
-         fellowship_church + dedication_church + sow_a_seed_church + pastors_appreciation_church +
-         harvest_church + project_support_church + lcc_church +
-         offering_project + tithe_project + sunday_school_project + covenant_offering_project +
-         thanksgiving_project + holy_communion_project + special_thanksgiving_project +
-         fellowship_project + dedication_project + sow_a_seed_project + pastors_appreciation_project +
-         harvest_project + project_support_project + lcc_project) AS grand_total
-       FROM account_entries ORDER BY date DESC, id DESC`
-    )
-    .all() as EntryWithTotals[];
+export default async function HistoryPage() {
+  const db = await getDb();
+  const result = await db.execute(
+    `SELECT *,
+      (offering_church + tithe_church + sunday_school_church + covenant_offering_church +
+       thanksgiving_church + holy_communion_church + special_thanksgiving_church +
+       fellowship_church + dedication_church + sow_a_seed_church + pastors_appreciation_church +
+       harvest_church + project_support_church + lcc_church) AS total_church,
+      (offering_project + tithe_project + sunday_school_project + covenant_offering_project +
+       thanksgiving_project + holy_communion_project + special_thanksgiving_project +
+       fellowship_project + dedication_project + sow_a_seed_project + pastors_appreciation_project +
+       harvest_project + project_support_project + lcc_project) AS total_project,
+      (offering_church + tithe_church + sunday_school_church + covenant_offering_church +
+       thanksgiving_church + holy_communion_church + special_thanksgiving_church +
+       fellowship_church + dedication_church + sow_a_seed_church + pastors_appreciation_church +
+       harvest_church + project_support_church + lcc_church +
+       offering_project + tithe_project + sunday_school_project + covenant_offering_project +
+       thanksgiving_project + holy_communion_project + special_thanksgiving_project +
+       fellowship_project + dedication_project + sow_a_seed_project + pastors_appreciation_project +
+       harvest_project + project_support_project + lcc_project) AS grand_total
+     FROM account_entries ORDER BY date DESC, id DESC`
+  );
+  const entries = result.rows as unknown as EntryWithTotals[];
 
   const overallTotal = entries.reduce((sum, e) => sum + e.grand_total, 0);
 

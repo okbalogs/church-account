@@ -4,14 +4,17 @@ import { ExpenditureEntry } from "@/types";
 import ExpenditureForm from "@/components/ExpenditureForm";
 
 interface Props {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
-export default function EditExpenditurePage({ params }: Props) {
-  const db = getDb();
-  const entry = db
-    .prepare("SELECT * FROM expenditure_entries WHERE id = ?")
-    .get(Number(params.id)) as ExpenditureEntry | undefined;
+export default async function EditExpenditurePage({ params }: Props) {
+  const { id } = await params;
+  const db = await getDb();
+  const result = await db.execute({
+    sql: "SELECT * FROM expenditure_entries WHERE id = ?",
+    args: [Number(id)],
+  });
+  const entry = result.rows[0] as unknown as ExpenditureEntry | undefined;
 
   if (!entry) notFound();
 

@@ -13,30 +13,29 @@ interface EntryWithTotals {
   [key: string]: unknown;
 }
 
-export default function ExpenditureHistoryPage() {
-  const db = getDb();
-  const entries = db
-    .prepare(
-      `SELECT *,
-        (transportation_church + premise_church + percent25_church + gift_church +
-         battery_church + fuel_church + electricity_church + lcc_dcc_church +
-         entertainment_church + pastors_appreciation_church + stationeries_church +
-         accessories_church + phcn_church + assessment_church) AS total_church,
-        (transportation_project + premise_project + percent25_project + gift_project +
-         battery_project + fuel_project + electricity_project + lcc_dcc_project +
-         entertainment_project + pastors_appreciation_project + stationeries_project +
-         accessories_project + phcn_project + assessment_project) AS total_project,
-        (transportation_church + premise_church + percent25_church + gift_church +
-         battery_church + fuel_church + electricity_church + lcc_dcc_church +
-         entertainment_church + pastors_appreciation_church + stationeries_church +
-         accessories_church + phcn_church + assessment_church +
-         transportation_project + premise_project + percent25_project + gift_project +
-         battery_project + fuel_project + electricity_project + lcc_dcc_project +
-         entertainment_project + pastors_appreciation_project + stationeries_project +
-         accessories_project + phcn_project + assessment_project) AS grand_total
-       FROM expenditure_entries ORDER BY date DESC, id DESC`
-    )
-    .all() as EntryWithTotals[];
+export default async function ExpenditureHistoryPage() {
+  const db = await getDb();
+  const result = await db.execute(
+    `SELECT *,
+      (transportation_church + premise_church + percent25_church + gift_church +
+       battery_church + fuel_church + electricity_church + lcc_dcc_church +
+       entertainment_church + pastors_appreciation_church + stationeries_church +
+       accessories_church + phcn_church + assessment_church) AS total_church,
+      (transportation_project + premise_project + percent25_project + gift_project +
+       battery_project + fuel_project + electricity_project + lcc_dcc_project +
+       entertainment_project + pastors_appreciation_project + stationeries_project +
+       accessories_project + phcn_project + assessment_project) AS total_project,
+      (transportation_church + premise_church + percent25_church + gift_church +
+       battery_church + fuel_church + electricity_church + lcc_dcc_church +
+       entertainment_church + pastors_appreciation_church + stationeries_church +
+       accessories_church + phcn_church + assessment_church +
+       transportation_project + premise_project + percent25_project + gift_project +
+       battery_project + fuel_project + electricity_project + lcc_dcc_project +
+       entertainment_project + pastors_appreciation_project + stationeries_project +
+       accessories_project + phcn_project + assessment_project) AS grand_total
+     FROM expenditure_entries ORDER BY date DESC, id DESC`
+  );
+  const entries = result.rows as unknown as EntryWithTotals[];
 
   const overallTotal = entries.reduce((sum, e) => sum + e.grand_total, 0);
 

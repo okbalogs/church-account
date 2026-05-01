@@ -4,14 +4,17 @@ import { AccountEntry } from "@/types";
 import EntryForm from "@/components/EntryForm";
 
 interface Props {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
-export default function EditEntryPage({ params }: Props) {
-  const db = getDb();
-  const entry = db
-    .prepare("SELECT * FROM account_entries WHERE id = ?")
-    .get(Number(params.id)) as AccountEntry | undefined;
+export default async function EditEntryPage({ params }: Props) {
+  const { id } = await params;
+  const db = await getDb();
+  const result = await db.execute({
+    sql: "SELECT * FROM account_entries WHERE id = ?",
+    args: [Number(id)],
+  });
+  const entry = result.rows[0] as unknown as AccountEntry | undefined;
 
   if (!entry) notFound();
 
