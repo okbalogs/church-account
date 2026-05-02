@@ -5,23 +5,40 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
-import { apiFetch, fc } from "../../constants/api";
+import { apiFetch, fc, isNetworkError } from "../../constants/api";
 import { ACCOUNT_CATEGORIES, SERVICE_TYPES } from "../../constants/categories";
 import { C } from "../../constants/colors";
 import AmountRow from "../../components/AmountRow";
+import { useOnline } from "../../hooks/useOfflineSync";
+import { CachedEntry, enqueue, getIncomeCache, setIncomeCache } from "../../utils/storage";
 
 type FormData = Record<string, number | string>;
 
 export default function EditIncomeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { isOnline, refreshPendingCount } = useOnline();
   const [form, setForm] = useState<FormData | null>(null);
   const [saving, setSaving] = useState(false);
   const [svcOpen, setSvcOpen] = useState(false);
 
   useEffect(() => {
-    apiFetch<FormData>(`/api/entries/${id}`)
-      .then(setForm)
-      .catch(e => { Alert.alert("Error", e.message); router.back(); });
+    async function loadEntry() {
+      const numId = Number(id);
+      const cached = await getIncomeCache();
+      const found = cached.find(e => e.id === numId);
+      if (found) {
+        setForm(found as unknown as FormData);
+        return;
+      }
+      try {
+        const data = await apiFetch<FormData>(`/api/entries/${id}`);
+        setForm(data);
+      } catch (e) {
+        Alert.alert("Error", e instanceof Error ? e.message : "Failed to load");
+        router.back();
+      }
+    }
+    loadEntry();
   }, [id]);
 
   function set(key: string, val: string | number) {
@@ -38,11 +55,39 @@ export default function EditIncomeScreen() {
 
   async function handleSave() {
     setSaving(true);
+    const numId = Number(id);
+
+    const updatedEntry: CachedEntry = {
+      ...(form as unknown as CachedEntry),
+      total_church: totalChurch,
+      total_project: totalProject,
+      grand_total: grandTotal,
+    };
+
+    const cache = await getIncomeCache();
+    await setIncomeCache(cache.map(e => e.id === numId ? { ...updatedEntry, pending: numId < 0 ? true : e.pending } : e));
+
+    if (numId < 0) {
+      Alert.alert("Note", "This entry hasn't synced yet. Changes saved locally.", [{ text: "OK", onPress: () => router.back() }]);
+      setSaving(false);
+      return;
+    }
+
     try {
-      await apiFetch(`/api/entries/${id}`, { method: "PUT", body: JSON.stringify(form) });
+      const result = await apiFetch<CachedEntry>(`/api/entries/${id}`, { method: "PUT", body: JSON.stringify(form) });
+      const updated = await getIncomeCache();
+      await setIncomeCache(updated.map(e => e.id === numId ? { ...result, pending: false } : e));
       router.back();
     } catch (e) {
-      Alert.alert("Error", e instanceof Error ? e.message : "Failed to save");
+      if (isNetworkError(e)) {
+        await enqueue({ opId: String(Date.now()), type: "PUT", path: `/api/entries/${id}`, body: form as Record<string, unknown> });
+        const updated = await getIncomeCache();
+        await setIncomeCache(updated.map(e => e.id === numId ? { ...updatedEntry, pending: true } : e));
+        await refreshPendingCount();
+        Alert.alert("Saved Offline", "Changes saved and will sync when you're back online.", [{ text: "OK", onPress: () => router.back() }]);
+      } else {
+        Alert.alert("Error", e instanceof Error ? e.message : "Failed to save");
+      }
     } finally {
       setSaving(false);
     }
@@ -78,6 +123,11 @@ export default function EditIncomeScreen() {
               </View>
             )}
           </View>
+          {!isOnline && (
+            <View style={styles.offlineNote}>
+              <Text style={styles.offlineNoteText}>📵 Offline — changes will sync when connected</Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.colHeaders}>
@@ -149,6 +199,8 @@ const styles = StyleSheet.create({
   dropDown: { marginTop: 4, backgroundColor: C.card, borderWidth: 1, borderColor: C.border, borderRadius: 10, overflow: "hidden" },
   dropItem: { paddingHorizontal: 16, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: C.border },
   dropText: { fontSize: 15, color: C.text },
+  offlineNote: { backgroundColor: "#fff7ed", borderRadius: 8, padding: 10 },
+  offlineNoteText: { fontSize: 12, color: "#9a3412", fontWeight: "600" },
   colHeaders: { flexDirection: "row", paddingHorizontal: 16, paddingVertical: 8, backgroundColor: C.bg, borderBottomWidth: 1, borderBottomColor: C.border },
   colHead: { fontSize: 11, fontWeight: "700", color: C.muted, textTransform: "uppercase", letterSpacing: 0.5 },
   footer: { backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.border, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 16, shadowColor: "#000", shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 8 },

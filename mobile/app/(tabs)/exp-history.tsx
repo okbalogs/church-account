@@ -5,41 +5,44 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useFocusEffect } from "expo-router";
-import { apiFetch, fc, formatDate } from "../../constants/api";
+import { apiFetch, fc, formatDate, isNetworkError } from "../../constants/api";
 import { EXPENDITURE_CATEGORIES } from "../../constants/categories";
 import { C } from "../../constants/colors";
-
-interface Entry {
-  id: number;
-  date: string;
-  service_type: string;
-  total_church: number;
-  total_project: number;
-  grand_total: number;
-  [key: string]: unknown;
-}
+import OfflineBanner from "../../components/OfflineBanner";
+import { useOnline } from "../../hooks/useOfflineSync";
+import { CachedEntry, enqueue, getExpCache, setExpCache } from "../../utils/storage";
 
 export default function ExpHistoryScreen() {
-  const [entries, setEntries] = useState<Entry[]>([]);
+  const { isOnline, refreshPendingCount } = useOnline();
+  const [entries, setEntries] = useState<CachedEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [expanded, setExpanded] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    try {
-      setError(null);
-      const data = await apiFetch<Entry[]>("/api/expenditure");
-      setEntries(data);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
+  const loadFromCache = useCallback(async () => {
+    const cached = await getExpCache();
+    setEntries(cached);
+    setLoading(false);
   }, []);
 
-  useFocusEffect(useCallback(() => { setLoading(true); load(); }, [load]));
+  const fetchFromApi = useCallback(async () => {
+    if (!isOnline) { setRefreshing(false); return; }
+    try {
+      setError(null);
+      const data = await apiFetch<CachedEntry[]>("/api/expenditure");
+      await setExpCache(data);
+      setEntries(data);
+    } catch (e) {
+      if (entries.length === 0) setError(e instanceof Error ? e.message : "Failed to load");
+    } finally {
+      setRefreshing(false);
+    }
+  }, [isOnline, entries.length]);
+
+  useFocusEffect(useCallback(() => {
+    loadFromCache().then(() => fetchFromApi());
+  }, [loadFromCache, fetchFromApi]));
 
   async function handleDelete(id: number, date: string) {
     Alert.alert("Delete Entry", `Delete expenditure entry for ${date}?`, [
@@ -47,11 +50,23 @@ export default function ExpHistoryScreen() {
       {
         text: "Delete", style: "destructive",
         onPress: async () => {
+          const prev = await getExpCache();
+          await setExpCache(prev.filter(e => e.id !== id));
+          setEntries(p => p.filter(e => e.id !== id));
+
+          if (id < 0) return;
+
           try {
             await apiFetch(`/api/expenditure/${id}`, { method: "DELETE" });
-            setEntries(prev => prev.filter(e => e.id !== id));
           } catch (e) {
-            Alert.alert("Error", e instanceof Error ? e.message : "Failed to delete");
+            if (isNetworkError(e)) {
+              await enqueue({ opId: String(Date.now()), type: "DELETE", path: `/api/expenditure/${id}` });
+              await refreshPendingCount();
+            } else {
+              await setExpCache(prev);
+              setEntries(prev);
+              Alert.alert("Error", e instanceof Error ? e.message : "Failed to delete");
+            }
           }
         },
       },
@@ -63,11 +78,11 @@ export default function ExpHistoryScreen() {
   if (loading) {
     return <SafeAreaView style={styles.center}><ActivityIndicator size="large" color={C.exp} /></SafeAreaView>;
   }
-  if (error) {
+  if (error && entries.length === 0) {
     return (
       <SafeAreaView style={styles.center}>
         <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity style={[styles.btn, { backgroundColor: C.exp }]} onPress={load}>
+        <TouchableOpacity style={[styles.btn, { backgroundColor: C.exp }]} onPress={() => { setLoading(true); loadFromCache().then(() => fetchFromApi()); }}>
           <Text style={styles.btnText}>Retry</Text>
         </TouchableOpacity>
       </SafeAreaView>
@@ -76,10 +91,11 @@ export default function ExpHistoryScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={["bottom"]}>
+      <OfflineBanner />
       <FlatList
         data={entries}
         keyExtractor={e => String(e.id)}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={C.exp} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchFromApi(); }} tintColor={C.exp} />}
         ListHeaderComponent={
           entries.length > 0 ? (
             <View style={styles.header}>
@@ -103,10 +119,13 @@ export default function ExpHistoryScreen() {
         renderItem={({ item: e }) => {
           const isExpanded = expanded === e.id;
           return (
-            <TouchableOpacity style={styles.card} onPress={() => setExpanded(isExpanded ? null : e.id)} activeOpacity={0.8}>
+            <TouchableOpacity style={[styles.card, e.pending && styles.cardPending]} onPress={() => setExpanded(isExpanded ? null : e.id)} activeOpacity={0.8}>
               <View style={styles.cardTop}>
                 <View style={styles.cardMeta}>
-                  <Text style={styles.cardDate}>{formatDate(e.date)}</Text>
+                  <View style={styles.dateRow}>
+                    <Text style={styles.cardDate}>{formatDate(e.date)}</Text>
+                    {e.pending && <Text style={styles.pendingBadge}>⏳ Pending</Text>}
+                  </View>
                   <View style={styles.badge}>
                     <Text style={[styles.badgeText, { color: C.exp }]}>{e.service_type}</Text>
                   </View>
@@ -177,9 +196,12 @@ const styles = StyleSheet.create({
   bannerAmt: { fontSize: 28, fontWeight: "800", color: "#fff", marginBottom: 2 },
   bannerSub: { fontSize: 12, color: "rgba(255,255,255,0.75)" },
   card: { backgroundColor: C.card, borderRadius: 16, borderWidth: 1, borderColor: C.border, marginBottom: 10, padding: 16 },
+  cardPending: { borderColor: "#d97706", borderStyle: "dashed" },
   cardTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
   cardMeta: { flex: 1, marginRight: 12 },
-  cardDate: { fontSize: 15, fontWeight: "700", color: C.text, marginBottom: 4 },
+  dateRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 },
+  cardDate: { fontSize: 15, fontWeight: "700", color: C.text },
+  pendingBadge: { fontSize: 11, fontWeight: "600", color: "#d97706" },
   badge: { alignSelf: "flex-start", backgroundColor: C.expLight, borderWidth: 1, borderColor: "#fecdd3", borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3 },
   badgeText: { fontSize: 12, fontWeight: "600" },
   cardTotal: { fontSize: 17, fontWeight: "800" },

@@ -2,10 +2,12 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StyleSheet } from "react-native";
+import { OnlineContext, useOfflineSyncState } from "../hooks/useOfflineSync";
 
-export default function RootLayout() {
+function RootContent() {
+  const syncState = useOfflineSyncState();
   return (
-    <GestureHandlerRootView style={styles.root}>
+    <OnlineContext.Provider value={syncState}>
       <StatusBar style="dark" />
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -18,6 +20,14 @@ export default function RootLayout() {
           options={{ title: "Edit Expenditure", headerBackTitle: "Back", headerTintColor: "#e11d48" }}
         />
       </Stack>
+    </OnlineContext.Provider>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <GestureHandlerRootView style={styles.root}>
+      <RootContent />
     </GestureHandlerRootView>
   );
 }

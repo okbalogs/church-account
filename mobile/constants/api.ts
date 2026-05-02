@@ -17,6 +17,20 @@ export async function apiFetch<T = unknown>(path: string, options?: RequestInit)
   return res.json() as Promise<T>;
 }
 
+export function isNetworkError(e: unknown): boolean {
+  if (!(e instanceof Error)) return false;
+  const msg = e.message.toLowerCase();
+  return (
+    msg.includes("network") ||
+    msg.includes("failed to fetch") ||
+    msg.includes("timeout") ||
+    msg.includes("connection") ||
+    msg.includes("internet") ||
+    msg.includes("econnrefused") ||
+    e.message.startsWith("HTTP 5")
+  );
+}
+
 export function fc(n: number): string {
   if (!n) return "₦0";
   return "₦" + Math.abs(n).toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 });

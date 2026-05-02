@@ -5,33 +5,35 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import { apiFetch, fc } from "../../constants/api";
+import { apiFetch, fc, isNetworkError } from "../../constants/api";
 import { ACCOUNT_CATEGORIES, SERVICE_TYPES } from "../../constants/categories";
 import { C } from "../../constants/colors";
 import AmountRow from "../../components/AmountRow";
+import OfflineBanner from "../../components/OfflineBanner";
+import { useOnline } from "../../hooks/useOfflineSync";
+import { enqueue, getIncomeCache, setIncomeCache, CachedEntry } from "../../utils/storage";
 
 type FormData = Record<string, number | string>;
 
 function emptyForm(): FormData {
-  const f: FormData = {
-    date: new Date().toISOString().slice(0, 10),
-    service_type: SERVICE_TYPES[0],
-  };
-  ACCOUNT_CATEGORIES.forEach(c => {
-    f[`${c.key}_church`] = 0;
-    f[`${c.key}_project`] = 0;
-  });
+  const f: FormData = { date: new Date().toISOString().slice(0, 10), service_type: SERVICE_TYPES[0] };
+  ACCOUNT_CATEGORIES.forEach(c => { f[`${c.key}_church`] = 0; f[`${c.key}_project`] = 0; });
   return f;
 }
 
+function buildEntry(form: FormData, id: number): CachedEntry {
+  const totalChurch = ACCOUNT_CATEGORIES.reduce((s, c) => s + (Number(form[`${c.key}_church`]) || 0), 0);
+  const totalProject = ACCOUNT_CATEGORIES.reduce((s, c) => s + (Number(form[`${c.key}_project`]) || 0), 0);
+  return { ...form, id, total_church: totalChurch, total_project: totalProject, grand_total: totalChurch + totalProject } as unknown as CachedEntry;
+}
+
 export default function NewIncomeScreen() {
+  const { refreshPendingCount } = useOnline();
   const [form, setForm] = useState<FormData>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [svcOpen, setSvcOpen] = useState(false);
 
-  function set(key: string, val: string | number) {
-    setForm(p => ({ ...p, [key]: val }));
-  }
+  function set(key: string, val: string | number) { setForm(p => ({ ...p, [key]: val })); }
 
   const totalChurch = ACCOUNT_CATEGORIES.reduce((s, c) => s + (Number(form[`${c.key}_church`]) || 0), 0);
   const totalProject = ACCOUNT_CATEGORIES.reduce((s, c) => s + (Number(form[`${c.key}_project`]) || 0), 0);
@@ -40,15 +42,35 @@ export default function NewIncomeScreen() {
   async function handleSave() {
     if (!form.date) { Alert.alert("Error", "Please enter a date"); return; }
     setSaving(true);
+    const tempId = -Date.now();
+    const optimistic = { ...buildEntry(form, tempId), pending: true };
+
+    const cache = await getIncomeCache();
+    await setIncomeCache([optimistic, ...cache]);
+
     try {
-      await apiFetch("/api/entries", { method: "POST", body: JSON.stringify(form) });
+      const result = await apiFetch<CachedEntry>("/api/entries", { method: "POST", body: JSON.stringify(form) });
+      const updated = await getIncomeCache();
+      await setIncomeCache(updated.map(e => e.id === tempId ? { ...result, pending: false } : e));
       setForm(emptyForm());
       Alert.alert("Saved!", "Income entry saved successfully.", [
         { text: "View Records", onPress: () => router.push("/(tabs)/history") },
         { text: "New Entry", style: "cancel" },
       ]);
     } catch (e) {
-      Alert.alert("Error", e instanceof Error ? e.message : "Failed to save");
+      if (isNetworkError(e)) {
+        await enqueue({ opId: String(Date.now()), type: "POST", path: "/api/entries", body: form as Record<string, unknown>, tempId });
+        await refreshPendingCount();
+        setForm(emptyForm());
+        Alert.alert("Saved Offline", "Entry saved on your device and will sync when you're back online.", [
+          { text: "View Records", onPress: () => router.push("/(tabs)/history") },
+          { text: "OK", style: "cancel" },
+        ]);
+      } else {
+        const updated = await getIncomeCache();
+        await setIncomeCache(updated.filter(e => e.id !== tempId));
+        Alert.alert("Error", e instanceof Error ? e.message : "Failed to save");
+      }
     } finally {
       setSaving(false);
     }
@@ -56,21 +78,14 @@ export default function NewIncomeScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={["bottom"]}>
+      <OfflineBanner />
       <ScrollView style={styles.scroll} keyboardShouldPersistTaps="handled">
-
-        {/* Service details */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Service Details</Text>
           <View style={styles.field}>
             <Text style={styles.label}>Date <Text style={styles.hint}>(YYYY-MM-DD)</Text></Text>
-            <TextInput
-              style={styles.textInput}
-              value={String(form.date)}
-              onChangeText={v => set("date", v)}
-              placeholder="2025-01-05"
-              placeholderTextColor={C.muted}
-              keyboardType="numbers-and-punctuation"
-            />
+            <TextInput style={styles.textInput} value={String(form.date)} onChangeText={v => set("date", v)}
+              placeholder="2025-01-05" placeholderTextColor={C.muted} keyboardType="numbers-and-punctuation" />
           </View>
           <View style={styles.field}>
             <Text style={styles.label}>Service Type</Text>
@@ -90,51 +105,28 @@ export default function NewIncomeScreen() {
           </View>
         </View>
 
-        {/* Column headers */}
         <View style={styles.colHeaders}>
           <Text style={[styles.colHead, { flex: 1.4 }]}>Category</Text>
           <Text style={[styles.colHead, { flex: 1, textAlign: "center" }]}>Church</Text>
           <Text style={[styles.colHead, { flex: 1, textAlign: "center" }]}>Project</Text>
         </View>
 
-        {/* Amount rows */}
         {ACCOUNT_CATEGORIES.map((cat, i) => (
-          <AmountRow
-            key={cat.key}
-            label={cat.label}
-            churchVal={Number(form[`${cat.key}_church`])}
-            projectVal={Number(form[`${cat.key}_project`])}
-            odd={i % 2 === 0}
-            accentLight={C.incomeLight}
-            onChurchChange={v => set(`${cat.key}_church`, v)}
-            onProjectChange={v => set(`${cat.key}_project`, v)}
-          />
+          <AmountRow key={cat.key} label={cat.label}
+            churchVal={Number(form[`${cat.key}_church`])} projectVal={Number(form[`${cat.key}_project`])}
+            odd={i % 2 === 0} accentLight={C.incomeLight}
+            onChurchChange={v => set(`${cat.key}_church`, v)} onProjectChange={v => set(`${cat.key}_project`, v)} />
         ))}
-
         <View style={{ height: 160 }} />
       </ScrollView>
 
-      {/* Sticky footer */}
       <View style={styles.footer}>
         <View style={styles.totals}>
-          <View style={styles.totalItem}>
-            <Text style={styles.totalLabel}>Church</Text>
-            <Text style={styles.totalAmt}>{fc(totalChurch)}</Text>
-          </View>
-          <View style={styles.totalItem}>
-            <Text style={styles.totalLabel}>Project</Text>
-            <Text style={styles.totalAmt}>{fc(totalProject)}</Text>
-          </View>
-          <View style={[styles.totalItem, styles.grandItem]}>
-            <Text style={styles.grandLabel}>Grand Total</Text>
-            <Text style={styles.grandAmt}>{fc(grandTotal)}</Text>
-          </View>
+          <View style={styles.totalItem}><Text style={styles.totalLabel}>Church</Text><Text style={styles.totalAmt}>{fc(totalChurch)}</Text></View>
+          <View style={styles.totalItem}><Text style={styles.totalLabel}>Project</Text><Text style={styles.totalAmt}>{fc(totalProject)}</Text></View>
+          <View style={[styles.totalItem, { backgroundColor: C.income }]}><Text style={styles.grandLabel}>Grand Total</Text><Text style={styles.grandAmt}>{fc(grandTotal)}</Text></View>
         </View>
-        <TouchableOpacity
-          style={[styles.saveBtn, { backgroundColor: C.income }, saving && { opacity: 0.6 }]}
-          onPress={handleSave}
-          disabled={saving}
-        >
+        <TouchableOpacity style={[styles.saveBtn, { backgroundColor: C.income }, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving}>
           {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>Save Entry</Text>}
         </TouchableOpacity>
       </View>
@@ -150,32 +142,18 @@ const styles = StyleSheet.create({
   field: { marginBottom: 14 },
   label: { fontSize: 14, fontWeight: "600", color: C.text, marginBottom: 6 },
   hint: { fontSize: 12, color: C.muted, fontWeight: "400" },
-  textInput: {
-    backgroundColor: C.bg, borderWidth: 1, borderColor: C.border, borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, color: C.text,
-  },
-  picker: {
-    backgroundColor: C.bg, borderWidth: 1, borderColor: C.border, borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 13, flexDirection: "row", justifyContent: "space-between",
-  },
+  textInput: { backgroundColor: C.bg, borderWidth: 1, borderColor: C.border, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, color: C.text },
+  picker: { backgroundColor: C.bg, borderWidth: 1, borderColor: C.border, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 13, flexDirection: "row", justifyContent: "space-between" },
   pickerText: { fontSize: 16, color: C.text },
   pickerChevron: { fontSize: 12, color: C.sub },
   dropDown: { marginTop: 4, backgroundColor: C.card, borderWidth: 1, borderColor: C.border, borderRadius: 10, overflow: "hidden" },
   dropItem: { paddingHorizontal: 16, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: C.border },
   dropText: { fontSize: 15, color: C.text },
-  colHeaders: {
-    flexDirection: "row", paddingHorizontal: 16, paddingVertical: 8,
-    backgroundColor: C.bg, borderBottomWidth: 1, borderBottomColor: C.border,
-  },
+  colHeaders: { flexDirection: "row", paddingHorizontal: 16, paddingVertical: 8, backgroundColor: C.bg, borderBottomWidth: 1, borderBottomColor: C.border },
   colHead: { fontSize: 11, fontWeight: "700", color: C.muted, textTransform: "uppercase", letterSpacing: 0.5 },
-  footer: {
-    backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.border,
-    paddingHorizontal: 16, paddingTop: 12, paddingBottom: 16,
-    shadowColor: "#000", shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 8,
-  },
+  footer: { backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.border, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 16, shadowColor: "#000", shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 8 },
   totals: { flexDirection: "row", gap: 8, marginBottom: 12 },
   totalItem: { flex: 1, backgroundColor: C.bg, borderRadius: 10, padding: 10, alignItems: "center" },
-  grandItem: { backgroundColor: C.income },
   totalLabel: { fontSize: 10, fontWeight: "700", color: C.muted, textTransform: "uppercase", marginBottom: 3 },
   totalAmt: { fontSize: 14, fontWeight: "800", color: C.text },
   grandLabel: { fontSize: 10, fontWeight: "700", color: "rgba(255,255,255,0.8)", textTransform: "uppercase", marginBottom: 3 },
