@@ -16,5 +16,8 @@
         "EXPO_PUBLIC_API_URL": "https://church-account-yqbr.vercel.app"
       }
     }
+  },
+  "update": {
+    "channel": "production"
   }
 }
