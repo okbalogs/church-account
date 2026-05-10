@@ -40,10 +40,18 @@ async function set<T>(key: string, value: T): Promise<void> {
   } catch {}
 }
 
+function sortEntries(entries: CachedEntry[]): CachedEntry[] {
+  return [...entries].sort((a, b) => {
+    const dateDiff = b.date.localeCompare(a.date);
+    if (dateDiff !== 0) return dateDiff;
+    return b.id - a.id;
+  });
+}
+
 export const getIncomeCache = () => get<CachedEntry[]>(KEYS.INCOME, []);
-export const setIncomeCache = (v: CachedEntry[]) => set(KEYS.INCOME, v);
+export const setIncomeCache = (v: CachedEntry[]) => set(KEYS.INCOME, sortEntries(v));
 export const getExpCache = () => get<CachedEntry[]>(KEYS.EXP, []);
-export const setExpCache = (v: CachedEntry[]) => set(KEYS.EXP, v);
+export const setExpCache = (v: CachedEntry[]) => set(KEYS.EXP, sortEntries(v));
 
 export const getQueue = () => get<QueuedOp[]>(KEYS.QUEUE, []);
 export const setQueue = (q: QueuedOp[]) => set(KEYS.QUEUE, q);
