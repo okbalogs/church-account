@@ -62,7 +62,10 @@ export default async function ExpenditureHistoryPage() {
         <div className="flex gap-2 flex-wrap">
           <Link href="/expenditure" className="btn-expenditure btn">+ New Expenditure</Link>
           {entries.length > 0 && (
-            <a href="/api/export/expenditure" className="btn-success btn">📥 Export Excel</a>
+            <>
+              <a href="/api/export/expenditure" className="btn-success btn">📥 Export All</a>
+              <a href="/api/export/church-expenditure" className="btn btn" style={{backgroundColor:"#0369a1",color:"#fff"}}>📥 Church Only</a>
+            </>
           )}
         </div>
       </div>

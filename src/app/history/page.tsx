@@ -62,7 +62,10 @@ export default async function HistoryPage() {
         <div className="flex gap-2 flex-wrap">
           <Link href="/entry" className="btn-income btn">+ New Income</Link>
           {entries.length > 0 && (
-            <a href="/api/export" className="btn-success btn">📥 Export Excel</a>
+            <>
+              <a href="/api/export" className="btn-success btn">📥 Export All</a>
+              <a href="/api/export/church-income" className="btn btn" style={{backgroundColor:"#0369a1",color:"#fff"}}>📥 Church Only</a>
+            </>
           )}
         </div>
       </div>
