@@ -27,9 +27,9 @@ val tabs = listOf(Tab.Dashboard, Tab.NewIncome, Tab.IncomeHistory, Tab.NewExp, T
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
-    val dashVm: DashboardViewModel = viewModel(factory = DashboardViewModel.Factory)
-    val incVm: IncomeViewModel = viewModel(factory = IncomeViewModel.Factory)
-    val expVm: ExpenditureViewModel = viewModel(factory = ExpenditureViewModel.Factory)
+    val dashVm: DashboardViewModel = viewModel()
+    val incVm: IncomeViewModel = viewModel()
+    val expVm: ExpenditureViewModel = viewModel()
 
     val navBackStack by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStack?.destination?.route

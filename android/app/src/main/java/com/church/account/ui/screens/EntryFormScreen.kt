@@ -98,6 +98,7 @@ fun EditExpenditureScreen(vm: ExpenditureViewModel, entryId: Long, onSaved: () -
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EntryForm(
     title: String,

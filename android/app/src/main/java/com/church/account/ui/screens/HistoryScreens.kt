@@ -174,6 +174,7 @@ private fun ExpenditureCard(entry: ExpenditureEntryEntity, vm: ExpenditureViewMo
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun EntryCard(
     date: String, serviceType: String, grandTotal: Double, pending: Boolean,

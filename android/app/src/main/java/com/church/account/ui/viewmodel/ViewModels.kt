@@ -1,7 +1,8 @@
 package com.church.account.ui.viewmodel
 
 import android.app.Application
-import androidx.lifecycle.*
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 import com.church.account.ChurchApp
 import com.church.account.Constants
 import com.church.account.data.local.IncomeEntryEntity
@@ -41,7 +42,6 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun refresh() = viewModelScope.launch { app.syncManager.flushAndRefresh() }
 
-    companion object { val Factory = viewModelFactory { initializer { DashboardViewModel(this[APPLICATION_KEY]!!) } } }
 }
 
 // ── Income ViewModel ──────────────────────────────────────────────────────────
@@ -100,7 +100,6 @@ class IncomeViewModel(application: Application) : AndroidViewModel(application) 
 
     fun resetSaved() { _form.update { it.copy(saved = false) } }
 
-    companion object { val Factory = viewModelFactory { initializer { IncomeViewModel(this[APPLICATION_KEY]!!) } } }
 }
 
 // ── Expenditure ViewModel ─────────────────────────────────────────────────────
@@ -159,5 +158,4 @@ class ExpenditureViewModel(application: Application) : AndroidViewModel(applicat
 
     fun resetSaved() { _form.update { it.copy(saved = false) } }
 
-    companion object { val Factory = viewModelFactory { initializer { ExpenditureViewModel(this[APPLICATION_KEY]!!) } } }
 }
